@@ -24,86 +24,6 @@ class TablePage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Showdown overlay com jogada vencedora e botão
-            if (game.isShowdown && game.winningHand != null)
-              Container(
-                color: Colors.black.withOpacity(0.7),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.amber, width: 2),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Jogada Vencedora',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          game.winningHand!,
-                          style: const TextStyle(
-                            color: Colors.amber,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () {
-                            ws.startGame();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.greenAccent,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 48,
-                              vertical: 16,
-                            ),
-                          ),
-                          child: const Text(
-                            'Nova rodada?',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            // Última ação
-            if (game.lastActionText != null)
-              Align(
-                alignment: const Alignment(0, -0.45),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    game.lastActionText!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
             // Mesa central
             Align(
               alignment: Alignment.center,
@@ -166,6 +86,30 @@ class TablePage extends StatelessWidget {
               ),
             ),
 
+            // Última ação
+            if (game.lastActionText != null)
+              Align(
+                alignment: const Alignment(0, -0.45),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    game.lastActionText!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
             // Jogadores posicionados
             ..._buildPlayers(game, players, localPlayerId),
 
@@ -194,6 +138,104 @@ class TablePage extends StatelessWidget {
                 ),
               ),
             ),
+
+            // ⭐ OVERLAY DE SHOWDOWN - MOSTRA APÓS 10 SEGUNDOS DE PISCAR AS CARTAS
+            if (game.isShowdown &&
+                game.winningHand != null &&
+                game.showOverlayButton)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      padding: const EdgeInsets.all(32),
+                      margin: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.amber, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.emoji_events,
+                            color: Colors.amber,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '${game.winnerName ?? "Vencedor"}!',
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Jogada Vencedora',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            game.winningHand!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                debugPrint(
+                                  '[OVERLAY] Botão clicado - iniciando nova rodada',
+                                );
+                                ws.startGame();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.greenAccent,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 48,
+                                  vertical: 18,
+                                ),
+                                elevation: 5,
+                              ),
+                              child: const Text(
+                                'Nova Rodada?',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

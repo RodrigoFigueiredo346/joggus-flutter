@@ -15,6 +15,9 @@ class GameState {
   List<CardModel> winningCards;
   bool isShowdown;
   String? winningHand;
+  bool
+  showOverlayButton; // Controla quando mostrar o botão após piscar as cartas
+  String? winnerName; // Nome do jogador vencedor
 
   GameState({
     this.roomId,
@@ -29,6 +32,8 @@ class GameState {
     List<CardModel>? winningCards,
     this.isShowdown = false,
     this.winningHand,
+    this.showOverlayButton = false,
+    this.winnerName,
   }) : players = players ?? [],
        communityCards = communityCards ?? [],
        winningCards = winningCards ?? [];

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/game_player.dart';
 import '../models/player.dart';
@@ -18,6 +19,14 @@ class WebSocketService with ChangeNotifier {
   void connect() {
     try {
       _channel = WebSocketChannel.connect(Uri.parse('ws://localhost:8080/ws'));
+      // _channel = WebSocketChannel.connect(
+      //   Uri.parse('ws://192.168.56.22:8080/ws'),
+      // );
+
+      // _channel = WebSocketChannel.connect(
+      //   Uri.parse('ws://192.168.3.133:8080/ws'),
+      // );
+
       isConnected = true;
       debugPrint('[WS] Connected to ws://localhost:8080/ws');
 
@@ -188,17 +197,85 @@ class WebSocketService with ChangeNotifier {
           break;
 
         case 'showdown':
-          // Exibe vencedores
-          debugPrint('[SHOWDOWN] Winners: ${params['winners']}');
-          if (params['cards'] != null) {
-            final winningCards = (params['cards'] as List)
+          debugPrint('[SHOWDOWN] Recebido showdown: $params');
+
+          // Atualiza os chips de todos os jogadores
+          if (params['players'] != null) {
+            debugPrint(
+              '[SHOWDOWN] Atualizando chips de ${(params['players'] as List).length} jogadores',
+            );
+            for (var playerData in params['players'] as List) {
+              final playerId = playerData['player_id'];
+              final updatedChips = playerData['chips'];
+
+              final player = _gameState.players.firstWhere(
+                (p) => p.id == playerId,
+                orElse: () => Player(id: '', name: ''),
+              );
+
+              if (player.id.isNotEmpty) {
+                player.chips = updatedChips;
+                debugPrint(
+                  '[SHOWDOWN] ${player.name} agora tem $updatedChips chips',
+                );
+              }
+            }
+          }
+
+          // Atualiza o pot
+          if (params['pot'] != null) {
+            _gameState.pot = params['pot'];
+            debugPrint('[SHOWDOWN] Pot atualizado para: ${_gameState.pot}');
+          }
+
+          // Processa os vencedores
+          if (params['winners'] != null &&
+              (params['winners'] as List).isNotEmpty) {
+            final winners = params['winners'] as List;
+            final firstWinner = winners[0];
+
+            debugPrint(
+              '[SHOWDOWN] Vencedor: ${firstWinner['player_id']}, Mão: ${firstWinner['hand']}',
+            );
+
+            // Extrai o nome do jogador vencedor
+            final winnerId = firstWinner['player_id'];
+            final winnerPlayer = _gameState.players.firstWhere(
+              (p) => p.id == winnerId,
+              orElse: () => Player(id: '', name: 'Vencedor'),
+            );
+            _gameState.winnerName = winnerPlayer.name;
+
+            // Extrai as cartas vencedoras e a jogada do primeiro vencedor
+            final winningCards = (firstWinner['cards'] as List)
                 .map((c) => CardModel(rank: c['rank'], suit: c['suit']))
                 .toList();
             _gameState.winningCards = winningCards;
-            _gameState.winningHand = params['hand'];
+            _gameState.winningHand = firstWinner['hand'];
             _gameState.isShowdown = true;
-            notifyListeners();
+            _gameState.showOverlayButton = false; // Não mostra o botão ainda
+
+            debugPrint(
+              '[SHOWDOWN] isShowdown: ${_gameState.isShowdown}, winningHand: ${_gameState.winningHand}',
+            );
+            debugPrint('[SHOWDOWN] Vencedor: ${_gameState.winnerName}');
+            debugPrint(
+              '[SHOWDOWN] Cartas vencedoras: ${winningCards.map((c) => '${c.rank}${c.suit}').join(', ')}',
+            );
+
+            // Timer de 10 segundos antes de mostrar o botão
+            debugPrint('[SHOWDOWN] Iniciando timer de 10 segundos...');
+            Timer(const Duration(seconds: 10), () {
+              _gameState.showOverlayButton = true;
+              debugPrint('[SHOWDOWN] Timer concluído - exibindo botão');
+              notifyListeners();
+            });
           }
+
+          // Força rebuild da UI
+          _gameState.players = List.from(_gameState.players);
+          debugPrint('[SHOWDOWN] Notificando listeners...');
+          notifyListeners();
           break;
       }
 
@@ -230,11 +307,17 @@ class WebSocketService with ChangeNotifier {
     }
 
     // Reset de estado para nova rodada
+    debugPrint('[GAME_STARTED] Limpando estado anterior da rodada');
     _gameState.communityCards = [];
     _gameState.winningCards = [];
     _gameState.isShowdown = false;
     _gameState.winningHand = null;
     _gameState.lastActionText = null;
+    _gameState.showOverlayButton = false;
+    _gameState.winnerName = null;
+    debugPrint(
+      '[GAME_STARTED] Estado limpo - isShowdown: ${_gameState.isShowdown}',
+    );
 
     _gameState.players = (params['players'] as List)
         .map(
