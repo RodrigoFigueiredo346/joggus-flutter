@@ -24,6 +24,29 @@ class TablePage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
+            // Última ação
+            if (game.lastActionText != null)
+              Align(
+                alignment: const Alignment(0, -0.45),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    game.lastActionText!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
             // Mesa central
             Align(
               alignment: Alignment.center,
@@ -86,30 +109,6 @@ class TablePage extends StatelessWidget {
               ),
             ),
 
-            // Última ação
-            if (game.lastActionText != null)
-              Align(
-                alignment: const Alignment(0, -0.45),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    game.lastActionText!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
             // Jogadores posicionados
             ..._buildPlayers(game, players, localPlayerId),
 
@@ -138,7 +137,6 @@ class TablePage extends StatelessWidget {
                 ),
               ),
             ),
-
             // ⭐ OVERLAY DE SHOWDOWN - MOSTRA APÓS 10 SEGUNDOS DE PISCAR AS CARTAS
             if (game.isShowdown &&
                 game.winningHand != null &&
@@ -263,56 +261,70 @@ class TablePage extends StatelessWidget {
 
       return Align(
         alignment: isLocal ? const Alignment(0, 0.7) : align,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
           children: [
-            if (isLocal)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: p.hand.map((c) => _buildCard(c, game)).toList(),
-              ),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isCurrent ? Colors.green : Colors.white10,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  // color: isCurrent
-                  //     ? Colors.greenAccent
-                  //     : Colors.greenAccent.withOpacity(0.4),
-                  color: Colors.green,
-                  width: isCurrent ? 3 : 1.5,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    p.name,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+            // Info do Jogador (Anchor)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isCurrent ? Colors.green : Colors.white10,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.green,
+                      width: isCurrent ? 3 : 1.5,
                     ),
                   ),
-                  Text(
-                    '${p.chips} fichas',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  child: Column(
+                    children: [
+                      Text(
+                        p.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${p.chips} fichas',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      Text(
+                        p.isBigBlind
+                            ? 'BB'
+                            : p.isSmallBlind
+                            ? 'SB'
+                            : '',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    ],
                   ),
-                  Text(
-                    p.isBigBlind
-                        ? 'BB'
-                        : p.isSmallBlind
-                        ? 'SB'
-                        : '',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                if (isCurrent && game.turnStartTime != null)
+                  TurnTimerBar(
+                    key: ValueKey('${p.id}_${game.turnStartTime}'),
+                    isLocal: isLocal,
                   ),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(height: 8),
-            if (isCurrent && game.turnStartTime != null)
-              TurnTimerBar(
-                key: ValueKey('${p.id}_${game.turnStartTime}'),
-                isLocal: isLocal,
+
+            // Cartas (Positioned relative to Info)
+            if (isLocal || (game.isShowdown && p.hand.isNotEmpty))
+              Positioned(
+                bottom: 90, // Flutua acima do info box
+                left: -100,
+                right: -100,
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: p.hand.map((c) => _buildCard(c, game)).toList(),
+                  ),
+                ),
               ),
           ],
         ),
@@ -354,8 +366,8 @@ class TablePage extends StatelessWidget {
       child: Center(
         child: Text(
           '${c.rank}${c.suit}',
-          style: const TextStyle(
-            color: Colors.black87,
+          style: TextStyle(
+            color: (c.suit == '♥' || c.suit == '♦') ? Colors.red : Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),

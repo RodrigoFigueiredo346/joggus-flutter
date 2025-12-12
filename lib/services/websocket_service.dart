@@ -199,14 +199,15 @@ class WebSocketService with ChangeNotifier {
         case 'showdown':
           debugPrint('[SHOWDOWN] Recebido showdown: $params');
 
-          // Atualiza os chips de todos os jogadores
+          // Atualiza os chips e cartas de todos os jogadores
           if (params['players'] != null) {
             debugPrint(
-              '[SHOWDOWN] Atualizando chips de ${(params['players'] as List).length} jogadores',
+              '[SHOWDOWN] Atualizando dados de ${(params['players'] as List).length} jogadores',
             );
             for (var playerData in params['players'] as List) {
               final playerId = playerData['player_id'];
               final updatedChips = playerData['chips'];
+              final cardsData = playerData['cards'];
 
               final player = _gameState.players.firstWhere(
                 (p) => p.id == playerId,
@@ -215,6 +216,18 @@ class WebSocketService with ChangeNotifier {
 
               if (player.id.isNotEmpty) {
                 player.chips = updatedChips;
+
+                // Atualiza as cartas se disponíveis
+                if (cardsData != null) {
+                  final newHand = (cardsData as List)
+                      .map((c) => CardModel(rank: c['rank'], suit: c['suit']))
+                      .toList();
+                  player.hand = newHand;
+                  debugPrint(
+                    '[SHOWDOWN] ${player.name} revelou cartas: ${newHand.map((c) => '${c.rank}${c.suit}').join(', ')}',
+                  );
+                }
+
                 debugPrint(
                   '[SHOWDOWN] ${player.name} agora tem $updatedChips chips',
                 );
