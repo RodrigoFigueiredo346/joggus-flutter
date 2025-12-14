@@ -30,18 +30,26 @@ class TablePage extends StatelessWidget {
                 alignment: const Alignment(0, -0.45),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 24,
+                    vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.amber, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   child: Text(
                     game.lastActionText!,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                      color: Colors.amber,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -65,34 +73,84 @@ class TablePage extends StatelessWidget {
             // Cartas comunitárias
             Align(
               alignment: Alignment.center,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                switchInCurve: Curves.easeOut,
-                child: Row(
-                  key: ValueKey(
-                    community.length,
-                  ), // força rebuild quando muda o número de cartas
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: community
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => AnimatedSlide(
-                          offset: const Offset(0, 0.1),
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeOut,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 500),
-                              opacity: 1.0,
-                              child: _buildCard(entry.value, game),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 600),
+                    switchInCurve: Curves.easeOut,
+                    child: Row(
+                      key: ValueKey(
+                        community.length,
+                      ), // força rebuild quando muda o número de cartas
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: community
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => AnimatedSlide(
+                              offset: const Offset(0, 0.1),
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeOut,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 500),
+                                  opacity: 1.0,
+                                  child: _buildCard(entry.value, game),
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  // Label informativo do vencedor (aparece abaixo das cartas)
+                  if (game.isShowdown && game.winningHand != null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.amber, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.3),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${game.winnerName ?? "Vencedor"} venceu!',
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                ),
+                          const SizedBox(height: 4),
+                          if (game.winningHand != 'win by fold')
+                            Text(
+                              game.winningHand!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
 
@@ -137,103 +195,6 @@ class TablePage extends StatelessWidget {
                 ),
               ),
             ),
-            // ⭐ OVERLAY DE SHOWDOWN - MOSTRA APÓS 10 SEGUNDOS DE PISCAR AS CARTAS
-            if (game.isShowdown &&
-                game.winningHand != null &&
-                game.showOverlayButton)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black87,
-                  child: Center(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      padding: const EdgeInsets.all(32),
-                      margin: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.amber, width: 3),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.emoji_events,
-                            color: Colors.amber,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '${game.winnerName ?? "Vencedor"}!',
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Jogada Vencedora',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            game.winningHand!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                debugPrint(
-                                  '[OVERLAY] Botão clicado - iniciando nova rodada',
-                                );
-                                ws.startGame();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.greenAccent,
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 48,
-                                  vertical: 18,
-                                ),
-                                elevation: 5,
-                              ),
-                              child: const Text(
-                                'Nova Rodada?',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -304,7 +265,7 @@ class TablePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (isCurrent && game.turnStartTime != null)
+                if (isCurrent && game.turnStartTime != null && !game.isShowdown)
                   TurnTimerBar(
                     key: ValueKey('${p.id}_${game.turnStartTime}'),
                     isLocal: isLocal,
@@ -315,7 +276,8 @@ class TablePage extends StatelessWidget {
             // Cartas (Positioned relative to Info)
             if (isLocal || (game.isShowdown && p.hand.isNotEmpty))
               Positioned(
-                bottom: 90, // Flutua acima do info box
+                bottom:
+                    120, // Flutua acima do info box (aumentado para não sobrepor)
                 left: -100,
                 right: -100,
                 child: Center(

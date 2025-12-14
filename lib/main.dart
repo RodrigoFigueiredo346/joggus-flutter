@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/websocket_service.dart';
-import 'pages/home_page.dart';
+import 'pages/game_selection_page.dart';
 
 void main() {
   runApp(const JoggusApp());
@@ -24,7 +24,7 @@ class JoggusApp extends StatelessWidget {
           ),
           scaffoldBackgroundColor: const Color(0xFF121212),
         ),
-        home: const HomePage(),
+        home: const GameSelectionPage(),
       ),
     );
   }

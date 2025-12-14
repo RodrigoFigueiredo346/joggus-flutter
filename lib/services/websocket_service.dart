@@ -18,14 +18,14 @@ class WebSocketService with ChangeNotifier {
   /// Conecta ao servidor WebSocket
   void connect() {
     try {
-      _channel = WebSocketChannel.connect(Uri.parse('ws://localhost:8080/ws'));
+      // _channel = WebSocketChannel.connect(Uri.parse('ws://localhost:8080/ws'));
       // _channel = WebSocketChannel.connect(
       //   Uri.parse('ws://192.168.56.22:8080/ws'),
       // );
 
-      // _channel = WebSocketChannel.connect(
-      //   Uri.parse('ws://192.168.3.133:8080/ws'),
-      // );
+      _channel = WebSocketChannel.connect(
+        Uri.parse('ws://192.168.3.133:8080/ws'),
+      );
 
       isConnected = true;
       debugPrint('[WS] Connected to ws://localhost:8080/ws');
@@ -260,9 +260,12 @@ class WebSocketService with ChangeNotifier {
             _gameState.winnerName = winnerPlayer.name;
 
             // Extrai as cartas vencedoras e a jogada do primeiro vencedor
-            final winningCards = (firstWinner['cards'] as List)
-                .map((c) => CardModel(rank: c['rank'], suit: c['suit']))
-                .toList();
+            List<CardModel> winningCards = [];
+            if (firstWinner['cards'] != null) {
+              winningCards = (firstWinner['cards'] as List)
+                  .map((c) => CardModel(rank: c['rank'], suit: c['suit']))
+                  .toList();
+            }
             _gameState.winningCards = winningCards;
             _gameState.winningHand = firstWinner['hand'];
             _gameState.isShowdown = true;
@@ -276,12 +279,13 @@ class WebSocketService with ChangeNotifier {
               '[SHOWDOWN] Cartas vencedoras: ${winningCards.map((c) => '${c.rank}${c.suit}').join(', ')}',
             );
 
-            // Timer de 10 segundos antes de mostrar o botão
-            debugPrint('[SHOWDOWN] Iniciando timer de 10 segundos...');
-            Timer(const Duration(seconds: 10), () {
-              _gameState.showOverlayButton = true;
-              debugPrint('[SHOWDOWN] Timer concluído - exibindo botão');
-              notifyListeners();
+            // Timer de 20 segundos antes de iniciar nova rodada automaticamente
+            debugPrint('[SHOWDOWN] Iniciando timer de 20 segundos...');
+            Timer(const Duration(seconds: 20), () {
+              debugPrint(
+                '[SHOWDOWN] Timer concluído - iniciando nova rodada automaticamente',
+              );
+              startGame();
             });
           }
 
