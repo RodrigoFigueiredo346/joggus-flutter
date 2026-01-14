@@ -36,10 +36,12 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 40),
               SizedBox(
-                width:MediaQuery.of(context).size.width * 0.4 > 300 ? MediaQuery.of(context).size.width * 0.4 : MediaQuery.of(context).size.width * 0.8  ,
+                width: MediaQuery.of(context).size.width * 0.4 > 300
+                    ? MediaQuery.of(context).size.width * 0.4
+                    : MediaQuery.of(context).size.width * 0.8,
                 child: TextField(
                   controller: _nameController,
-                  style: const TextStyle(color: Colors.white, ),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Seu nome',
                     labelStyle: const TextStyle(color: Colors.grey),
@@ -48,7 +50,10 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.amber, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.amber,
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -56,7 +61,9 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 16),
               SizedBox(
-                width:MediaQuery.of(context).size.width * 0.4 > 300 ? MediaQuery.of(context).size.width * 0.4 : MediaQuery.of(context).size.width * 0.8  ,
+                width: MediaQuery.of(context).size.width * 0.4 > 300
+                    ? MediaQuery.of(context).size.width * 0.4
+                    : MediaQuery.of(context).size.width * 0.8,
                 child: TextField(
                   controller: _roomController,
                   style: const TextStyle(color: Colors.white),
@@ -68,79 +75,163 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.amber, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.amber,
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      final name = _nameController.text.trim();
-                      if (name.isEmpty) return;
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final name = _nameController.text.trim();
+                              if (name.isEmpty) return;
 
-                      ws.send('create_room', {'player_name': name});
+                              ws.send('create_room', {'player_name': name});
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LobbyPage(
-                            playerName: name,
-                            isCreator: true,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => LobbyPage(
+                                    playerName: name,
+                                    isCreator: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.greenAccent,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              'Criar Sala',
+                              style: TextStyle(fontSize: 18),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
-                    ),
-                    child: const Text(
-                      'Criar Sala',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      final name = _nameController.text.trim();
-                      final roomId = _roomController.text.trim();
-                      if (name.isEmpty || roomId.isEmpty) return;
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final name = _nameController.text.trim();
+                              final roomId = _roomController.text.trim();
+                              if (name.isEmpty || roomId.isEmpty) return;
 
-                      ws.send('join_room', {
-                        'room_id': roomId,
-                        'player_name': name,
-                      });
+                              ws.send('join_room', {
+                                'room_id': roomId,
+                                'player_name': name,
+                              });
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LobbyPage(
-                            playerName: name,
-                            isCreator: false,
-                            roomId: roomId,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => LobbyPage(
+                                    playerName: name,
+                                    isCreator: false,
+                                    roomId: roomId,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              'Entrar na Sala',
+                              style: TextStyle(fontSize: 18),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
-                    ),
-                    child: const Text(
-                      'Entrar na Sala',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ],
+                      ],
+                    );
+                  } else {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            final name = _nameController.text.trim();
+                            if (name.isEmpty) return;
+
+                            ws.send('create_room', {'player_name': name});
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LobbyPage(
+                                  playerName: name,
+                                  isCreator: true,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                          ),
+                          child: const Text(
+                            'Criar Sala',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            final name = _nameController.text.trim();
+                            final roomId = _roomController.text.trim();
+                            if (name.isEmpty || roomId.isEmpty) return;
+
+                            ws.send('join_room', {
+                              'room_id': roomId,
+                              'player_name': name,
+                            });
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LobbyPage(
+                                  playerName: name,
+                                  isCreator: false,
+                                  roomId: roomId,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                          ),
+                          child: const Text(
+                            'Entrar na Sala',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                },
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/game_player.dart';
 import '../models/player.dart';
 import '../models/card_model.dart';
@@ -18,17 +19,21 @@ class WebSocketService with ChangeNotifier {
   /// Conecta ao servidor WebSocket
   void connect() {
     try {
-      // _channel = WebSocketChannel.connect(Uri.parse('ws://localhost:8080/ws'));
-      // _channel = WebSocketChannel.connect(
-      //   Uri.parse('ws://192.168.56.22:8080/ws'),
-      // );
+      String wsUrl = 'ws://localhost:8080/ws';
+      if (kIsWeb) {
+        final host = Uri.base.host;
+        if (host.isNotEmpty) {
+          wsUrl = 'ws://$host:8080/ws';
+        }
+      }
 
-      _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.3.133:8080/ws'),
-      );
+      debugPrint('[WS] Connecting to: $wsUrl');
+      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      // _channel = WebSocketChannel.connect(Uri.parse('ws://192.168.56.22:8080/ws'));
+      // _channel = WebSocketChannel.connect(Uri.parse('ws://192.168.3.133:8080/ws'));
 
       isConnected = true;
-      debugPrint('[WS] Connected to ws://localhost:8080/ws');
+      debugPrint('[WS] Connected to 8080/ws');
 
       _channel!.stream.listen(
         (message) => _handleMessage(message),

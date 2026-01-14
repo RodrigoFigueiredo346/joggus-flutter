@@ -26,17 +26,28 @@ class GameSelectionPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 5,
-          ),
-          itemCount: games.length,
-          itemBuilder: (context, index) {
-            final game = games[index];
-            return _buildGameCard(context, game);
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            int crossAxisCount = 2;
+            if (constraints.maxWidth >= 900) {
+              crossAxisCount = 4;
+            } else if (constraints.maxWidth >= 600) {
+              crossAxisCount = 3;
+            }
+
+            return GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: games.length,
+              itemBuilder: (context, index) {
+                final game = games[index];
+                return _buildGameCard(context, game);
+              },
+            );
           },
         ),
       ),

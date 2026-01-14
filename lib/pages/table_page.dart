@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:joggus/models/game_player.dart';
 import 'package:joggus/widgets/turn_time_bar.dart';
 import 'package:provider/provider.dart';
-import '../services/websocket_service.dart';
-import '../models/player.dart';
+
 import '../models/card_model.dart';
+import '../models/player.dart';
+import '../services/websocket_service.dart';
 
 class TablePage extends StatelessWidget {
   const TablePage({super.key});
@@ -18,184 +19,272 @@ class TablePage extends StatelessWidget {
     final players = game.players;
     final community = game.communityCards;
     final localPlayerId = ws.localPlayerId ?? '';
+    final isLocalTurn =
+        game.currentPlayerId != null &&
+        game.currentPlayerId == localPlayerId &&
+        !game.isShowdown;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0D0D0F),
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Última ação
-            if (game.lastActionText != null)
-              Align(
-                alignment: const Alignment(0, -0.45),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.amber, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.amber.withOpacity(0.3),
-                        blurRadius: 10,
-                        spreadRadius: 2,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double scale = Math.min(
+              constraints.maxWidth / 400.0,
+              constraints.maxHeight / 700.0,
+            ).clamp(0.6, 1.5);
+
+            final double tableWidth =
+                constraints.maxWidth * 0.52; // reduzido ~20%
+            final double tableHeight =
+                constraints.maxHeight * 0.4; // reduzido ~20%
+
+            return Stack(
+              children: [
+                // Fundo com leve gradiente para reforçar foco no centro
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment.center,
+                        radius: 1.1,
+                        colors: [
+                          const Color(0xFF14351F).withOpacity(0.7),
+                          const Color(0xFF0D0D0F),
+                        ],
                       ),
+                    ),
+                  ),
+                ),
+
+                // Mesa central
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: tableWidth,
+                    height: tableHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.green[800],
+                      shape: BoxShape.rectangle,
+                      borderRadius: BorderRadius.circular(150),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueGrey.shade900,
+                          blurRadius: 12 * scale,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              left: 40 * scale,
+                              bottom: 25 * scale,
+                            ),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16 * scale,
+                                vertical: 8 * scale,
+                              ),
+                              child: Text(
+                                'Pote: ${_formatAmount(game.pot)}',
+                                style: TextStyle(
+                                  color: Colors.amber,
+                                  fontSize: 16 * scale,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Cartas comunitárias
+                Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 600),
+                        switchInCurve: Curves.easeOut,
+                        child: Row(
+                          key: ValueKey(community.length),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: community
+                              .asMap()
+                              .entries
+                              .map(
+                                (entry) => AnimatedSlide(
+                                  offset: const Offset(0, 0.1),
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOut,
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 4 * scale,
+                                    ),
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 500,
+                                      ),
+                                      opacity: 1.0,
+                                      child: _buildCard(
+                                        entry.value,
+                                        game,
+                                        scale,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      if (game.isShowdown && game.winningHand != null)
+                        Container(
+                          margin: EdgeInsets.only(top: 16 * scale),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24 * scale,
+                            vertical: 12 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(20 * scale),
+                            border: Border.all(color: Colors.amber, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(0.3),
+                                blurRadius: 10 * scale,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                '${game.winnerName ?? "Vencedor"} venceu!',
+                                style: TextStyle(
+                                  color: Colors.amber,
+                                  fontSize: 18 * scale,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4 * scale),
+                              if (game.winningHand != 'win by fold')
+                                Text(
+                                  game.winningHand!,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14 * scale,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
-                  child: Text(
-                    game.lastActionText!,
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
-              ),
-            // Mesa central
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.5,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: Colors.green[800],
-                  shape: BoxShape.rectangle,
-                  borderRadius: BorderRadius.circular(50),
-                  boxShadow: [BoxShadow(color: Colors.blueGrey, blurRadius: 5)],
-                ),
-              ),
-            ),
 
-            // Cartas comunitárias
-            Align(
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 600),
-                    switchInCurve: Curves.easeOut,
-                    child: Row(
-                      key: ValueKey(
-                        community.length,
-                      ), // força rebuild quando muda o número de cartas
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: community
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => AnimatedSlide(
-                              offset: const Offset(0, 0.1),
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.easeOut,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 500),
-                                  opacity: 1.0,
-                                  child: _buildCard(entry.value, game),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                  // Label informativo do vencedor (aparece abaixo das cartas)
-                  if (game.isShowdown && game.winningHand != null)
-                    Container(
-                      margin: const EdgeInsets.only(top: 16),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                // Pot movido para dentro da mesa
+
+                // Jogadores posicionados
+                ..._buildPlayers(
+                  game,
+                  players,
+                  localPlayerId,
+                  scale,
+                  constraints,
+                ),
+
+                // Última ação
+                if (game.lastActionText != null && !game.isShowdown)
+                  Align(
+                    alignment: const Alignment(0, -0.35),
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.amber, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber.withOpacity(0.3),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
+                        color: Colors.black.withOpacity(0.65),
+                        borderRadius: BorderRadius.circular(16 * scale),
+                        border: Border.all(color: Colors.amber, width: 1.5),
                       ),
-                      child: Column(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20 * scale,
+                          vertical: 10 * scale,
+                        ),
+                        child: Text(
+                          game.lastActionText!,
+                          style: TextStyle(
+                            color: Colors.amber,
+                            fontSize: 16 * scale,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Botões de ação (somente para o jogador local)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 10 * scale),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            '${game.winnerName ?? "Vencedor"} venceu!',
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          _actionButton(
+                            'FOLD',
+                            Colors.redAccent,
+                            ws,
+                            context,
+                            scale,
+                            enabled: isLocalTurn,
                           ),
-                          const SizedBox(height: 4),
-                          if (game.winningHand != 'win by fold')
-                            Text(
-                              game.winningHand!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                          SizedBox(width: 12 * scale),
+                          _actionButton(
+                            'CHECK',
+                            Colors.blueAccent,
+                            ws,
+                            context,
+                            scale,
+                            enabled: isLocalTurn,
+                          ),
+                          SizedBox(width: 12 * scale),
+                          _actionButton(
+                            'CALL',
+                            Colors.greenAccent,
+                            ws,
+                            context,
+                            scale,
+                            enabled: isLocalTurn,
+                          ),
+                          SizedBox(width: 12 * scale),
+                          _actionButton(
+                            'BET',
+                            Colors.amber,
+                            ws,
+                            context,
+                            scale,
+                            enabled: isLocalTurn,
+                            onBet: true,
+                          ),
                         ],
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            // Pot
-            Align(
-              alignment: const Alignment(0, -0.2),
-              child: Text(
-                'Pote: ${game.pot}',
-                style: const TextStyle(
-                  color: Colors.amber,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ),
-
-            // Jogadores posicionados
-            ..._buildPlayers(game, players, localPlayerId),
-
-            // Botões de ação (somente para o jogador local)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _actionButton('FOLD', Colors.redAccent, ws, context),
-                    const SizedBox(width: 12),
-                    _actionButton('CHECK', Colors.blueAccent, ws, context),
-                    const SizedBox(width: 12),
-                    _actionButton('CALL', Colors.greenAccent, ws, context),
-                    const SizedBox(width: 12),
-                    _actionButton(
-                      'BET',
-                      Colors.amber,
-                      ws,
-                      context,
-                      onBet: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -206,13 +295,14 @@ class TablePage extends StatelessWidget {
     GameState game,
     List<Player> players,
     String localId,
+    double scale,
+    BoxConstraints constraints,
   ) {
     if (players.isEmpty) return [];
 
-    // Local player é o primeiro; os outros seguem em ordem
     final rotatedPlayers = _getRotatedPlayers(players, localId);
     final total = rotatedPlayers.length;
-    final positions = _getPlayerAlignments(total);
+    final positions = _getPlayerAlignments(total, constraints);
 
     return List.generate(total, (i) {
       final p = rotatedPlayers[i];
@@ -220,21 +310,35 @@ class TablePage extends StatelessWidget {
       final isLocal = i == 0; // o local está sempre na parte inferior
       final isCurrent = p.id == game.currentPlayerId;
 
+      double? top, bottom, left, right;
+      final offset = (total <= 3 ? 90 : 75) * scale;
+
+      if (isLocal) {
+        bottom = offset;
+      } else {
+        if (align.y < -0.5) {
+          top = offset;
+        } else if (align.y > 0.5) {
+          bottom = offset;
+        } else {
+          top = offset;
+        }
+      }
+
       return Align(
-        alignment: isLocal ? const Alignment(0, 0.7) : align,
+        alignment: isLocal ? const Alignment(0, 0.8) : align,
         child: Stack(
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            // Info do Jogador (Anchor)
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(10 * scale),
                   decoration: BoxDecoration(
                     color: isCurrent ? Colors.green : Colors.white10,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(50 * scale),
                     border: Border.all(
                       color: Colors.green,
                       width: isCurrent ? 3 : 1.5,
@@ -247,11 +351,16 @@ class TablePage extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontSize: 14 * scale,
                         ),
                       ),
+                      SizedBox(height: 2 * scale),
                       Text(
-                        '${p.chips} fichas',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        '${_formatAmount(p.chips)} fichas',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11 * scale,
+                        ),
                       ),
                       Text(
                         p.isBigBlind
@@ -259,12 +368,16 @@ class TablePage extends StatelessWidget {
                             : p.isSmallBlind
                             ? 'SB'
                             : '',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11 * scale,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8 * scale),
                 if (isCurrent && game.turnStartTime != null && !game.isShowdown)
                   TurnTimerBar(
                     key: ValueKey('${p.id}_${game.turnStartTime}'),
@@ -276,15 +389,17 @@ class TablePage extends StatelessWidget {
             // Cartas (Positioned relative to Info)
             if (isLocal || (game.isShowdown && p.hand.isNotEmpty))
               Positioned(
-                bottom:
-                    120, // Flutua acima do info box (aumentado para não sobrepor)
-                left: -100,
-                right: -100,
+                top: top,
+                bottom: bottom,
+                left: left,
+                right: right,
                 child: Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: p.hand.map((c) => _buildCard(c, game)).toList(),
+                    children: p.hand
+                        .map((c) => _buildCard(c, game, scale))
+                        .toList(),
                   ),
                 ),
               ),
@@ -295,14 +410,24 @@ class TablePage extends StatelessWidget {
   }
 
   // 🔹 Define as posições dos jogadores em volta da mesa
-  List<Alignment> _getPlayerAlignments(int count) {
-    const double radiusX = 0.85; // controla quão longe do centro na horizontal
-    const double radiusY = -0.85; // controla quão longe do centro na vertical
+  List<Alignment> _getPlayerAlignments(int count, BoxConstraints constraints) {
+    double radiusX = 0.9;
+    double radiusY = 0.8;
+
+    if (constraints.maxWidth > constraints.maxHeight) {
+      radiusX = 0.8;
+      radiusY = 0.85;
+    }
+
+    if (count >= 5) {
+      radiusX -= 0.1;
+      radiusY += 0.05;
+    }
+
     List<Alignment> positions = [];
 
     for (int i = 0; i < count; i++) {
-      // distribui igualmente ao redor do círculo
-      final angle = (2 * 3.14159 / count) * i - 3.14159 / 2; // começa em baixo
+      final angle = (2 * 3.14159 / count) * i + 3.14159 / 2; // começa em baixo
       final x = radiusX * (i == 0 ? 0 : Math.cos(angle));
       final y = radiusY * Math.sin(angle);
       positions.add(Alignment(x, y));
@@ -312,17 +437,17 @@ class TablePage extends StatelessWidget {
   }
 
   // 🔹 Renderiza uma carta simples
-  Widget _buildCard(CardModel c, GameState game) {
+  Widget _buildCard(CardModel c, GameState game, double scale) {
     final isWinning = game.winningCards.contains(c);
 
     Widget cardWidget = Container(
-      margin: EdgeInsets.all(4),
-      width: 40,
-      height: 60,
+      margin: EdgeInsets.all(4 * scale),
+      width: 40 * scale,
+      height: 60 * scale,
       decoration: BoxDecoration(
         color: isWinning ? Colors.yellowAccent : Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 4)],
+        borderRadius: BorderRadius.circular(6 * scale),
+        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 4 * scale)],
         border: isWinning ? Border.all(color: Colors.red, width: 2) : null,
       ),
       child: Center(
@@ -331,6 +456,7 @@ class TablePage extends StatelessWidget {
           style: TextStyle(
             color: (c.suit == '♥' || c.suit == '♦') ? Colors.red : Colors.black,
             fontWeight: FontWeight.bold,
+            fontSize: 14 * scale,
           ),
         ),
       ),
@@ -348,26 +474,37 @@ class TablePage extends StatelessWidget {
     String text,
     Color color,
     WebSocketService ws,
-    BuildContext context, {
+    BuildContext context,
+    double scale, {
     bool onBet = false,
+    bool enabled = true,
   }) {
     return ElevatedButton(
-      onPressed: () {
-        if (onBet) {
-          _showBetDialog(context, ws);
-        } else {
-          ws.playerAction(text.toLowerCase());
-        }
-      },
+      onPressed: enabled
+          ? () {
+              if (onBet) {
+                _showBetDialog(context, ws);
+              } else {
+                ws.playerAction(text.toLowerCase());
+              }
+            }
+          : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+        disabledBackgroundColor: Colors.white12,
+        disabledForegroundColor: Colors.white54,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12 * scale),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: 30 * scale,
+          vertical: 12 * scale,
+        ),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -462,6 +599,19 @@ class TablePage extends StatelessWidget {
     if (index == -1) return players;
 
     return [...players.sublist(index), ...players.sublist(0, index)];
+  }
+
+  String _formatAmount(num value) {
+    final digits = value.toStringAsFixed(0);
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      buffer.write(digits[i]);
+      final remaining = digits.length - i - 1;
+      if (remaining > 0 && remaining % 3 == 0) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 }
 
